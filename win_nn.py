@@ -189,9 +189,9 @@ else:
   predictedValue = 0
 print("CLI prediction (after training)", predictedValue)
 
-x = [2, 4, 6]
-y = [1, 3, 5]
-plt.plot(x, y)
-plt.show()
+# x = [2, 4, 6]
+# y = [1, 3, 5]
+# plt.plot(x, y)
+# plt.show()
 
 torch.save(our_model, "./model" + sys.argv[3] + ".pt")
