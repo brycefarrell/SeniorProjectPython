@@ -180,6 +180,9 @@ for xy in range(200):
 print("Accuracy: ", float(correct) / 200)
 print("Zero Percentage: ", float(zeroCounter) / 200)
   
+
+
+
 new_var = Variable(torch.Tensor(desiredRow)) 
 pred_y = our_model(new_var) 
 print("CLI actual", desiredRowWins)
@@ -189,6 +192,8 @@ else:
   predictedValue = 0
 print("CLI prediction (after training)", predictedValue)
 
+
+# Change desired row and rerun with model
 print(desiredRow)
 
 
