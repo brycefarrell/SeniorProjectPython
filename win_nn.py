@@ -19,31 +19,31 @@ modelDNE = 1
 def formRow(row):
   rv = []
   for i in range(len(row)):
-    if i == 2:
+    if i == 2: # R / G
       rv.append(float(row[2]) / 10)
-    elif i == 6:
+    elif i == 6: # Runs
       rv.append(float(row[6]) / 1000)
-    elif i == 7:
+    elif i == 7: # Hits
       rv.append(float(row[7]) / 2000)
-    if i == 16:
+    if i == 16: # Batting Average
       rv.append(row[16])
-    elif i == 17:
+    elif i == 17: # OBP
       rv.append(row[17])
-    elif i == 18:
+    elif i == 18: # SLG
       rv.append(row[18])
-    elif i == 19:
+    elif i == 19: # OPS
       rv.append(row[19])
-    elif i == 20:
+    elif i == 20: # OPS+
       rv.append(float(row[20]) / 200)
-    elif i == 30:
+    elif i == 30: # RA / G
       rv.append(float(row[30]) / 10)
-    elif i == 34:
+    elif i == 34: # ERA
       rv.append(float(row[33]) / 10)
-    elif i == 43:
-      rv.append(float(row[42]) / 1000)
-    elif i == 53:
+    elif i == 43: # Hits
+      rv.append(float(row[42]) / 2000) # was 1000
+    elif i == 53: # ERA+
       rv.append(float(row[53]) / 200)
-    elif i == 55:
+    elif i == 55: # WHIP
       rv.append(float(row[55]) / 3)
   return rv
 
@@ -189,9 +189,7 @@ else:
   predictedValue = 0
 print("CLI prediction (after training)", predictedValue)
 
-# x = [2, 4, 6]
-# y = [1, 3, 5]
-# plt.plot(x, y)
-# plt.show()
+print(desiredRow)
+
 
 torch.save(our_model, "./model" + sys.argv[3] + ".pt")
