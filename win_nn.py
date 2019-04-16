@@ -5,6 +5,7 @@ import sys
 import csv
 from torch.autograd import Variable 
 import matplotlib.pyplot as plt
+import random 
 # import statistics
   
 
@@ -39,13 +40,63 @@ def formRow(row):
       rv.append(float(row[30]) / 10)
     elif i == 34: # ERA
       rv.append(float(row[33]) / 10)
-    elif i == 43: # Hits
+    elif i == 43: # Hits Allowed
       rv.append(float(row[42]) / 2000) # was 1000
     elif i == 53: # ERA+
       rv.append(float(row[53]) / 200)
     elif i == 55: # WHIP
       rv.append(float(row[55]) / 3)
   return rv
+
+def adjust_parameters(desiredRow, desiredRowWins):
+  # Change desired row and rerun with model
+  print(desiredRow)
+  new = desiredRow.copy()
+  newWins = desiredRowWins
+  
+  totalChanges = []
+  for iteration in range(10):
+    predictedValue = 0
+    changes = [0 for x in range(13)]
+    while True:
+      
+      new_var = Variable(torch.Tensor(new)) 
+      pred_y = our_model(new_var) 
+      # print("CLI actual", newWins)
+      if (pred_y.data[0].item() >= 0.50):
+        predictedValue = 1
+      else:
+        predictedValue = 0
+      # print("CLI prediction (after training)", predictedValue)
+
+      if predictedValue == 1:
+        break
+
+      numberToChange = random.randrange(1, 14)
+      # print(numberToChange)
+      for stat in random.sample(range(0, 13), numberToChange):
+        if stat <= 7:
+          new[stat] = new[stat] + 0.001
+          changes[stat] = changes[stat] + 0.001
+        else:
+          new[stat] = new[stat] - 0.001
+          changes[stat] = changes[stat] - 0.001
+    
+    totalChanges.append(changes)
+  
+  avgChanges = [0 for y in range(13)]
+  for ind in range(len(avgChanges)):
+    for statInd in range(10):
+      avgChanges[ind] = avgChanges[ind] + totalChanges[statInd][ind]
+  
+  for i in range(len(avgChanges)):
+    avgChanges[i] = avgChanges[i] / 10
+
+  print(avgChanges)
+
+  # print(desiredRow)
+  # print(new)
+  # print(changes)
 
 
 if len(sys.argv) != 4:
@@ -111,6 +162,7 @@ try:
   else:
     predictedValue = 0
   print("prediction (after training)", predictedValue)
+  adjust_parameters(desiredRow, desiredRowWins)
   exit()
 
 except FileNotFoundError:
@@ -192,9 +244,7 @@ else:
   predictedValue = 0
 print("CLI prediction (after training)", predictedValue)
 
-
-# Change desired row and rerun with model
-print(desiredRow)
+adjust_parameters(desiredRow, desiredRowWins)
 
 
 torch.save(our_model, "./model" + sys.argv[3] + ".pt")
