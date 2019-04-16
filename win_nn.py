@@ -92,7 +92,9 @@ def adjust_parameters(desiredRow, desiredRowWins):
   for i in range(len(avgChanges)):
     avgChanges[i] = avgChanges[i] / 10
 
-  print(avgChanges)
+  # get std dev of the totalChanges
+  # also convert this percentages back into hits, R / G, etc.
+  print(avgChanges) 
 
   # print(desiredRow)
   # print(new)
