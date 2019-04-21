@@ -6,7 +6,7 @@ import csv
 from torch.autograd import Variable 
 import matplotlib.pyplot as plt
 import random 
-# import statistics
+import statistics
   
 
 inputData = []
@@ -26,7 +26,7 @@ def formRow(row):
       rv.append(float(row[6]) / 1000)
     elif i == 7: # Hits
       rv.append(float(row[7]) / 2000)
-    if i == 16: # Batting Average
+    elif i == 16: # Batting Average
       rv.append(row[16])
     elif i == 17: # OBP
       rv.append(row[17])
@@ -48,15 +48,72 @@ def formRow(row):
       rv.append(float(row[55]) / 3)
   return rv
 
+def revert(sds, avgChanges, desiredRow, newDesiredRow):
+  for i in range(len(newDesiredRow)):
+    if i == 0: # R / G
+      sds[i] = sds[i] * 10
+      avgChanges[i] = avgChanges[i] * 10
+      desiredRow[i] = desiredRow[i] * 10
+      newDesiredRow[i] = newDesiredRow[i] * 10
+    elif i == 1: # Runs
+      sds[i] = sds[i] * 1000
+      avgChanges[i] = avgChanges[i] * 1000
+      desiredRow[i] = desiredRow[i] * 1000
+      newDesiredRow[i] = newDesiredRow[i] * 1000
+    elif i == 2: # Hits
+      sds[i] = sds[i] * 2000
+      avgChanges[i] = avgChanges[i] * 2000
+      desiredRow[i] = desiredRow[i] * 2000
+      newDesiredRow[i] = newDesiredRow[i] * 2000
+    elif i == 7: # OPS+
+      sds[i] = sds[i] * 200
+      avgChanges[i] = avgChanges[i] * 200
+      desiredRow[i] = desiredRow[i] * 200
+      newDesiredRow[i] = newDesiredRow[i] * 200
+    elif i == 8: # RA / G
+      sds[i] = sds[i] * 10
+      avgChanges[i] = avgChanges[i] * 10
+      desiredRow[i] = desiredRow[i] * 10
+      newDesiredRow[i] = newDesiredRow[i] * 10
+    elif i == 9: # ERA
+      sds[i] = sds[i] * 10
+      avgChanges[i] = avgChanges[i] * 10
+      desiredRow[i] = desiredRow[i] * 10
+      newDesiredRow[i] = newDesiredRow[i] * 10
+    elif i == 10: # Hits Allowed
+      sds[i] = sds[i] * 2000
+      avgChanges[i] = avgChanges[i] * 2000
+      desiredRow[i] = desiredRow[i] * 2000
+      newDesiredRow[i] = newDesiredRow[i] * 2000
+    elif i == 11: # ERA+
+      sds[i] = sds[i] * 200
+      avgChanges[i] = avgChanges[i] * 200
+      desiredRow[i] = desiredRow[i] * 200
+      newDesiredRow[i] = newDesiredRow[i] * 200
+    elif i == 12: # WHIP
+      sds[i] = sds[i] * 3
+      avgChanges[i] = avgChanges[i] * 3
+      desiredRow[i] = desiredRow[i] * 3
+      newDesiredRow[i] = newDesiredRow[i] * 3
+
+
+def print_output(sds, avgChanges, newDesiredRow, desiredRow):
+  statNames = ["R / G:", "Runs:", "Hits:", "Batting Average:", "OBP:", "SLG:", "OPS:", "OPS+:", "RA / G:", "ERA:", "Hits Allowed:", "ERA+:", "WHIP:"]
+  print()
+  for i in range(len(sds)):
+    print("Actual %-18s %8.3f     Predicted %-18s %8.3f     Average Change: %8.3f     Standard Deviation: %8.3f" % (statNames[i], desiredRow[i], statNames[i], newDesiredRow[i], avgChanges[i], sds[i]))
+
+
 def adjust_parameters(desiredRow, desiredRowWins):
   # Change desired row and rerun with model
-  print(desiredRow)
-  new = desiredRow.copy()
+  # print(desiredRow)
+  # new = desiredRow.copy()
   newWins = desiredRowWins
   
   totalChanges = []
   for iteration in range(10):
     predictedValue = 0
+    new = desiredRow.copy()
     changes = [0 for x in range(13)]
     while True:
       
@@ -75,7 +132,7 @@ def adjust_parameters(desiredRow, desiredRowWins):
       numberToChange = random.randrange(1, 14)
       # print(numberToChange)
       for stat in random.sample(range(0, 13), numberToChange):
-        if stat <= 7:
+        if stat <= 7 or stat == 11:
           new[stat] = new[stat] + 0.001
           changes[stat] = changes[stat] + 0.001
         else:
@@ -92,13 +149,24 @@ def adjust_parameters(desiredRow, desiredRowWins):
   for i in range(len(avgChanges)):
     avgChanges[i] = avgChanges[i] / 10
 
+  
+  # print(totalChanges)
+  transposedTotalChanges = [*zip(*totalChanges)]
+  sds = []
+  for j in range(13):
+    sd = statistics.stdev(list(transposedTotalChanges[j]))
+    sds.append(sd)
+
   # get std dev of the totalChanges
   # also convert this percentages back into hits, R / G, etc.
-  print(avgChanges) 
 
-  # print(desiredRow)
-  # print(new)
-  # print(changes)
+  newDesiredRow = desiredRow.copy()
+  for k in range(13):
+    newDesiredRow[k] = newDesiredRow[k] + avgChanges[k]
+
+  revert(sds, avgChanges, desiredRow, newDesiredRow)
+  print_output(sds, avgChanges, newDesiredRow, desiredRow)
+
 
 
 if len(sys.argv) != 4:
@@ -137,7 +205,7 @@ with open('../data/data.csv', newline='') as csvFile:
 # print(rawData[0])
 # print(desiredRow)
 # print(desiredRowWins)
-print(inputData[0])
+# print(inputData[0])
 # print(winData)
 # print(len(inputData[0]))
 # print(wp)
@@ -164,7 +232,8 @@ try:
   else:
     predictedValue = 0
   print("prediction (after training)", predictedValue)
-  adjust_parameters(desiredRow, desiredRowWins)
+  if (predictedValue != 1):
+    adjust_parameters(desiredRow, desiredRowWins)
   exit()
 
 except FileNotFoundError:
@@ -246,7 +315,10 @@ else:
   predictedValue = 0
 print("CLI prediction (after training)", predictedValue)
 
-adjust_parameters(desiredRow, desiredRowWins)
+
+
+if predictedValue != 1:
+  adjust_parameters(desiredRow, desiredRowWins)
 
 
 torch.save(our_model, "./model" + sys.argv[3] + ".pt")
