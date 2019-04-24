@@ -7,14 +7,7 @@ from torch.autograd import Variable
 import matplotlib.pyplot as plt
 import random 
 import statistics
-  
 
-inputData = []
-winData = []
-rawData = []
-desiredRow = 0
-desiredRowWins = 0
-modelDNE = 1
 
 
 def formRow(row):
@@ -104,10 +97,9 @@ def print_output(sds, avgChanges, newDesiredRow, desiredRow):
     print("Actual %-18s %8.3f     Predicted %-18s %8.3f     Average Change: %8.3f     Standard Deviation: %8.3f" % (statNames[i], desiredRow[i], statNames[i], newDesiredRow[i], avgChanges[i], sds[i]))
 
 
-def adjust_parameters(desiredRow, desiredRowWins):
+def adjust_parameters(desiredRow, desiredRowWins, our_model):
   # Change desired row and rerun with model
-  # print(desiredRow)
-  # new = desiredRow.copy()
+
   newWins = desiredRowWins
   
   totalChanges = []
@@ -119,18 +111,18 @@ def adjust_parameters(desiredRow, desiredRowWins):
       
       new_var = Variable(torch.Tensor(new)) 
       pred_y = our_model(new_var) 
-      # print("CLI actual", newWins)
+     
       if (pred_y.data[0].item() >= 0.50):
         predictedValue = 1
       else:
         predictedValue = 0
-      # print("CLI prediction (after training)", predictedValue)
+     
 
       if predictedValue == 1:
         break
 
       numberToChange = random.randrange(1, 14)
-      # print(numberToChange)
+      
       for stat in random.sample(range(0, 13), numberToChange):
         if stat <= 7 or stat == 11:
           new[stat] = new[stat] + 0.001
@@ -148,9 +140,8 @@ def adjust_parameters(desiredRow, desiredRowWins):
   
   for i in range(len(avgChanges)):
     avgChanges[i] = avgChanges[i] / 10
-
+    
   
-  # print(totalChanges)
   transposedTotalChanges = [*zip(*totalChanges)]
   sds = []
   for j in range(13):
@@ -168,157 +159,153 @@ def adjust_parameters(desiredRow, desiredRowWins):
   print_output(sds, avgChanges, newDesiredRow, desiredRow)
 
 
+def data_setup(inputData, winData, rawData):
+  with open('../data/data.csv', newline='') as csvFile:
+    reader = csv.reader(csvFile)
+    i = 0
+    for row in reader:
+      if i >= 1:
+        temp = row.copy()
+        rawData.append(temp)
+        year = row.pop(0)
+        team = row.pop(0)
+        w = row.pop(31)
+        if float(w) >= float(sys.argv[3]):
+          winData.append([float(1)])
+        else:
+          winData.append([float(0)])
+        
+        newRow = formRow(row)
 
-if len(sys.argv) != 4:
-  print("Usage: python3 win_nn.py year team wins")
-  exit()
+        for x in range(len(newRow)):
+          newRow[x] = float(newRow[x])
+        inputData.append(newRow)
+        if float(year) == float(sys.argv[1]) and team.lower() == sys.argv[2].lower():
+          desiredRow = newRow.copy()
+          desiredRowWins = float(0)
+          if (float(w) >= float(sys.argv[3])):
+            desiredRowWins = float(1)
+      i = i + 1  
+  
+  return desiredRowWins, desiredRow
 
-with open('../data/data.csv', newline='') as csvFile:
-  reader = csv.reader(csvFile)
-  i = 0
-  for row in reader:
-    if i >= 1:
-      temp = row.copy()
-      rawData.append(temp)
-      year = row.pop(0)
-      team = row.pop(0)
-      w = row.pop(31)
-      if float(w) >= float(sys.argv[3]):
-        winData.append([float(1)])
-      else:
-        winData.append([float(0)])
+
+def train_model(inputData, winData):
+  
+  # our model 
+  our_model = Net() 
+
+  optimizer = torch.optim.Adam(our_model.parameters(), lr=0.0006)#6
+  criterion = torch.nn.BCELoss()
+
+  our_model.train()
+  for epoch in range(30):  # loop over the dataset multiple times
+
+    running_loss = 0.0
+    optimizer.zero_grad()
+    for i, data in enumerate(inputData, 0):
+      # get the inputs
+      # inputs, labels = data
+      inputs = Variable(torch.tensor(data))#, requires_grad=True)
       
-      newRow = formRow(row)
+      labels = Variable(torch.tensor(winData[i]))#, requires_grad=True)
+     
 
-      for x in range(len(newRow)):
-        newRow[x] = float(newRow[x])
-      inputData.append(newRow)
-      if float(year) == float(sys.argv[1]) and team.lower() == sys.argv[2].lower():
-        # print(year)
-        # print(team.lower())
-        desiredRow = newRow.copy()
-        desiredRowWins = float(0)
-        if (float(w) >= float(sys.argv[3])):
-          desiredRowWins = float(1)
-    i = i + 1  
+      # zero the parameter gradients
 
-# print(rawData[0])
-# print(desiredRow)
-# print(desiredRowWins)
-# print(inputData[0])
-# print(winData)
-# print(len(inputData[0]))
-# print(wp)
+      # forward + backward + optimize
+      outputs = our_model(inputs)
+     
+      loss = criterion(outputs, labels)
+      loss.backward()
+      optimizer.step()
 
-  
-  
-class Net(torch.nn.Module): 
-  
-    def __init__(self): 
-        super(Net, self).__init__() 
-        self.fc1 = nn.Linear(13, 1)
-  
-    def forward(self, x): 
-        y_pred = torch.sigmoid(self.fc1(x))
-        return y_pred
 
-try:
-  our_model = torch.load("./model" + sys.argv[3] +".pt")
+      #print statistics
+      running_loss += loss.item()
+      
+      if i % 100 == 99:    # print every 100 mini-batches
+        print('[%d, %5d] loss: %.3f' % (epoch + 1, i + 1, running_loss / 100))
+        running_loss = 0.0
+  return our_model
+
+
+def check_accuracy(inputData, our_model, winData):
+  correct = 0
+  zeroCounter = 0
+  # averageMaker
+  for xy in range(200):
+    nv = Variable(torch.Tensor(inputData[xy]))
+    py = our_model(nv)
+    
+    if (py.data[0].item() >= 0.50):
+      predictedValue = 1
+    else:
+      zeroCounter = zeroCounter + 1
+      predictedValue = 0
+    
+    if (winData[xy][0] == predictedValue):
+      correct = correct + 1
+  print("Accuracy: ", float(correct) / 200)
+  print("Zero Percentage: ", float(zeroCounter) / 200)
+
+
+def check_specific_team(desiredRow, desiredRowWins, our_model):
   new_var = Variable(torch.Tensor(desiredRow)) 
   pred_y = our_model(new_var) 
-  print("actual", desiredRowWins)
+  print("CLI actual", desiredRowWins)
   if (pred_y.data[0].item() >= 0.50):
     predictedValue = 1
   else:
     predictedValue = 0
-  print("prediction (after training)", predictedValue)
-  if (predictedValue != 1):
-    adjust_parameters(desiredRow, desiredRowWins)
-  exit()
+  print("CLI prediction (after training)", predictedValue)
 
-except FileNotFoundError:
-  pass
+  if predictedValue != 1:
+    adjust_parameters(desiredRow, desiredRowWins, our_model)
 
 
-# our model 
-our_model = Net() 
-
-optimizer = torch.optim.Adam(our_model.parameters(), lr=0.0006)#6
-criterion = torch.nn.BCELoss()
-
-our_model.train()
-for epoch in range(30):  # loop over the dataset multiple times
-
-  running_loss = 0.0
-  optimizer.zero_grad()
-  for i, data in enumerate(inputData, 0):
-    # get the inputs
-    # inputs, labels = data
-    inputs = Variable(torch.tensor(data))#, requires_grad=True)
-    # print(inputs)
-    labels = Variable(torch.tensor(winData[i]))#, requires_grad=True)
-    # print(labels)
-
-    # zero the parameter gradients
-
-
-
-    # forward + backward + optimize
-    outputs = our_model(inputs)
-    # print(outputs)
-    loss = criterion(outputs, labels)
-    loss.backward()
-    optimizer.step()
-
-    if i == 1:
-      print(inputs)
-      print(outputs)
-
-    #print statistics
-    running_loss += loss.item()
-    # print(loss.item())
-    if i % 100 == 99:    # print every 100 mini-batches
-      print('[%d, %5d] loss: %.3f' % (epoch + 1, i + 1, running_loss / 100))
-      running_loss = 0.0
-
-
-for val in our_model.parameters():
-  print("Weights: ", val.data)
-
-correct = 0
-zeroCounter = 0
-# averageMaker
-for xy in range(200):
-  nv = Variable(torch.Tensor(inputData[xy]))
-  py = our_model(nv)
-  print("actual", winData[xy])
-  if (py.data[0].item() >= 0.50):
-    predictedValue = 1
-  else:
-    zeroCounter = zeroCounter + 1
-    predictedValue = 0
-  print("prediction (after training)", py.data[0].item())
-  if (winData[xy][0] == predictedValue):
-    correct = correct + 1
-print("Accuracy: ", float(correct) / 200)
-print("Zero Percentage: ", float(zeroCounter) / 200)
+class Net(torch.nn.Module): 
   
+  def __init__(self): 
+    super(Net, self).__init__() 
+    self.fc1 = nn.Linear(13, 1)
+
+  def forward(self, x): 
+    y_pred = torch.sigmoid(self.fc1(x))
+    return y_pred
 
 
 
-new_var = Variable(torch.Tensor(desiredRow)) 
-pred_y = our_model(new_var) 
-print("CLI actual", desiredRowWins)
-if (pred_y.data[0].item() >= 0.50):
-  predictedValue = 1
-else:
-  predictedValue = 0
-print("CLI prediction (after training)", predictedValue)
+
+def main():
+  inputData = []
+  winData = []
+  rawData = []
+  desiredRow = []
+
+  if len(sys.argv) != 4:
+    print("Usage: python3 win_nn.py year team wins")
+    exit()
+
+  desiredRowWins, desiredRow = data_setup(inputData, winData, rawData)
+
+  try:
+    # print(sys.argv[3])
+    our_model = torch.load("./model" + sys.argv[3] +".pt")
+    check_specific_team(desiredRow, desiredRowWins, our_model)
+    exit()
+
+  except FileNotFoundError:
+    pass
+  
+  our_model = train_model(inputData, winData)
+
+  check_accuracy(inputData, our_model, winData)  
+
+  check_specific_team(desiredRow, desiredRowWins, our_model)
+
+  torch.save(our_model, "./model" + sys.argv[3] + ".pt")
 
 
-
-if predictedValue != 1:
-  adjust_parameters(desiredRow, desiredRowWins)
-
-
-torch.save(our_model, "./model" + sys.argv[3] + ".pt")
+if __name__ == '__main__':
+  main()
