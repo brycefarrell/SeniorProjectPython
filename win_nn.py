@@ -234,7 +234,8 @@ def check_accuracy(inputData, our_model, winData):
   correct = 0
   zeroCounter = 0
   # averageMaker
-  for xy in range(200):
+  indices = random.sample(range(0, 1400), 200)
+  for xy in indices:
     nv = Variable(torch.Tensor(inputData[xy]))
     py = our_model(nv)
     
