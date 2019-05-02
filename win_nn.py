@@ -160,6 +160,7 @@ def adjust_parameters(desiredRow, desiredRowWins, our_model):
 
 
 def data_setup(inputData, winData, rawData):
+  drowRawWins = 0
   with open('../data/data.csv', newline='') as csvFile:
     reader = csv.reader(csvFile)
     i = 0
@@ -182,12 +183,13 @@ def data_setup(inputData, winData, rawData):
         inputData.append(newRow)
         if float(year) == float(sys.argv[1]) and team.lower() == sys.argv[2].lower():
           desiredRow = newRow.copy()
+          drowRawWins = float(w)
           desiredRowWins = float(0)
           if (float(w) >= float(sys.argv[3])):
             desiredRowWins = float(1)
       i = i + 1  
   
-  return desiredRowWins, desiredRow
+  return desiredRowWins, desiredRow, drowRawWins
 
 
 def train_model(inputData, winData):
@@ -251,15 +253,21 @@ def check_accuracy(inputData, our_model, winData):
   print("Zero Percentage: ", float(zeroCounter) / 200)
 
 
-def check_specific_team(desiredRow, desiredRowWins, our_model):
+def check_specific_team(desiredRow, desiredRowWins, drowRawWins, our_model):
   new_var = Variable(torch.Tensor(desiredRow)) 
   pred_y = our_model(new_var) 
-  print("CLI actual", desiredRowWins)
+  print()
+  if (desiredRowWins == 0):
+    print("Did the team actually meet this win total:   NO  Actual Wins: " + str(drowRawWins))
+  else:
+    print("Did the team actually meet this win total:   YES Actual Wins: " + str(drowRawWins))
+
   if (pred_y.data[0].item() >= 0.50):
     predictedValue = 1
+    print("Does the algorithm predict this team to meet this win total:   YES")
   else:
     predictedValue = 0
-  print("CLI prediction (after training)", predictedValue)
+    print("Does the algorithm predict this team to meet this win total:   NO")
 
   if predictedValue != 1:
     adjust_parameters(desiredRow, desiredRowWins, our_model)
@@ -281,19 +289,28 @@ class Net(torch.nn.Module):
 def main():
   inputData = []
   winData = []
+  # rawWinData = []
   rawData = []
   desiredRow = []
 
+  teamCodes = ["ARI", "ATL", "BAL", "BOS", "CHC", "CHW", "CIN", 
+      "CLE", "COL", "DET", "HOU", "KCR", "LAA", "LAD", "MIA", "MIL", "MIN", "NYM", "NYY", 
+      "OAK", "PHI", "PIT", "SDP", "SEA", "SFG", "STL", "TBR", "TEX", "TOR", "WSN"]
+
   if len(sys.argv) != 4:
     print("Usage: python3 win_nn.py year team wins")
+    print("Years: 1960 - 2018")
+    print("Team Codes:")
+    for code in teamCodes:
+      print(code)
     exit()
 
-  desiredRowWins, desiredRow = data_setup(inputData, winData, rawData)
+  desiredRowWins, desiredRow, drowRawWins = data_setup(inputData, winData, rawData)
 
   try:
     # print(sys.argv[3])
     our_model = torch.load("./model" + sys.argv[3] +".pt")
-    check_specific_team(desiredRow, desiredRowWins, our_model)
+    check_specific_team(desiredRow, desiredRowWins, drowRawWins, our_model)
     exit()
 
   except FileNotFoundError:
@@ -303,7 +320,7 @@ def main():
 
   check_accuracy(inputData, our_model, winData)  
 
-  check_specific_team(desiredRow, desiredRowWins, our_model)
+  check_specific_team(desiredRow, desiredRowWins, drowRawWins, our_model)
 
   torch.save(our_model, "./model" + sys.argv[3] + ".pt")
 
