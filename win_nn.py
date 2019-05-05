@@ -258,9 +258,9 @@ def check_specific_team(desiredRow, desiredRowWins, drowRawWins, our_model):
   pred_y = our_model(new_var) 
   print()
   if (desiredRowWins == 0):
-    print("Did the team actually meet this win total:   NO  Actual Wins: " + str(drowRawWins))
+    print("Did the team actually meet this win total:   NO    Actual Wins: " + str(drowRawWins))
   else:
-    print("Did the team actually meet this win total:   YES Actual Wins: " + str(drowRawWins))
+    print("Did the team actually meet this win total:   YES   Actual Wins: " + str(drowRawWins))
 
   if (pred_y.data[0].item() >= 0.50):
     predictedValue = 1
@@ -311,6 +311,7 @@ def main():
     # print(sys.argv[3])
     our_model = torch.load("./model" + sys.argv[3] +".pt")
     check_specific_team(desiredRow, desiredRowWins, drowRawWins, our_model)
+    print()
     exit()
 
   except FileNotFoundError:
