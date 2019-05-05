@@ -94,7 +94,7 @@ def print_output(sds, avgChanges, newDesiredRow, desiredRow):
   statNames = ["R / G:", "Runs:", "Hits:", "Batting Average:", "OBP:", "SLG:", "OPS:", "OPS+:", "RA / G:", "ERA:", "Hits Allowed:", "ERA+:", "WHIP:"]
   print()
   for i in range(len(sds)):
-    print("Actual %-18s %8.3f     Predicted %-18s %8.3f     Average Change: %8.3f     Standard Deviation: %8.3f" % (statNames[i], desiredRow[i], statNames[i], newDesiredRow[i], avgChanges[i], sds[i]))
+    print("Actual %-18s %8.3f     Predicted %-18s %8.3f     Avg. Change: %8.3f     Std. Dev.: %8.3f" % (statNames[i], desiredRow[i], statNames[i], newDesiredRow[i], avgChanges[i], sds[i]))
 
 
 def adjust_parameters(desiredRow, desiredRowWins, our_model):
