@@ -7,6 +7,7 @@ from torch.autograd import Variable
 import matplotlib.pyplot as plt
 import random 
 import statistics
+from tqdm import tqdm
 
 
 def formRow(row):
@@ -114,7 +115,7 @@ def main():
   errorArray = []
 
   w = 0
-  while w <= 162:
+  for w in tqdm(range(163)): #w <= 162:
     try:
       data_setup(inputData, winData, rawData, w)
       our_model = torch.load("./model" + str(w) +".pt")
@@ -124,7 +125,7 @@ def main():
         acc += check_accuracy(inputData, our_model, winData)
       acc = acc / 100
       error = 1 - acc
-      print([w, error])
+      # print([w, error])
       errorArray.append([w, error])
       
     
@@ -135,7 +136,7 @@ def main():
     inputData.clear()
     winData.clear()
     rawData.clear()
-    w += 1
+    # w += 1
 
 
   xWins = []

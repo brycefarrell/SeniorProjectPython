@@ -7,6 +7,7 @@ from torch.autograd import Variable
 import matplotlib.pyplot as plt
 import random 
 import statistics
+from tqdm import tqdm
 
 
 
@@ -194,6 +195,7 @@ def data_setup(inputData, winData, rawData):
 
 def train_model(inputData, winData):
   
+  print("Training Model...")
   # our model 
   our_model = Net() 
 
@@ -201,7 +203,7 @@ def train_model(inputData, winData):
   criterion = torch.nn.BCELoss()
 
   our_model.train()
-  for epoch in range(30):  # loop over the dataset multiple times
+  for epoch in tqdm(range(30)):  # loop over the dataset multiple times
 
     running_loss = 0.0
     optimizer.zero_grad()
@@ -224,11 +226,11 @@ def train_model(inputData, winData):
 
 
       #print statistics
-      running_loss += loss.item()
+      # running_loss += loss.item()
       
-      if i % 100 == 99:    # print every 100 mini-batches
-        print('[%d, %5d] loss: %.3f' % (epoch + 1, i + 1, running_loss / 100))
-        running_loss = 0.0
+      # if i % 100 == 99:    # print every 100 mini-batches
+      #   print('[%d, %5d] loss: %.3f' % (epoch + 1, i + 1, running_loss / 100))
+      #   running_loss = 0.0
   return our_model
 
 
@@ -249,8 +251,8 @@ def check_accuracy(inputData, our_model, winData):
     
     if (winData[xy][0] == predictedValue):
       correct = correct + 1
-  print("Accuracy: ", float(correct) / 200)
-  print("Zero Percentage: ", float(zeroCounter) / 200)
+  # print("Accuracy: ", float(correct) / 200)
+  # print("Zero Percentage: ", float(zeroCounter) / 200)
 
 
 def check_specific_team(desiredRow, desiredRowWins, drowRawWins, our_model):
@@ -301,8 +303,10 @@ def main():
     print("Usage: python3 win_nn.py year team wins")
     print("Years: 1960 - 2018")
     print("Team Codes:")
-    for code in teamCodes:
-      print(code)
+    codeInd = 0
+    while codeInd < len(teamCodes):
+      print(teamCodes[codeInd], teamCodes[codeInd + 1], teamCodes[codeInd+2])
+      codeInd += 3
     exit()
 
   desiredRowWins, desiredRow, drowRawWins = data_setup(inputData, winData, rawData)
